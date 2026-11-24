@@ -22,3 +22,12 @@ server:
 outgoing:
   request_timeout: 5
   max_request_timeout: 9
+engines:
+  - name: wikipedia
+    disabled: false
+  - name: brave
+    disabled: false
+  - name: mojeek
+    disabled: false
+  - name: startpage
+    disabled: false
