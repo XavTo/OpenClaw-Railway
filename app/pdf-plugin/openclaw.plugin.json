@@ -13,6 +13,9 @@
     "tools": [
       "railway_pdf_search",
       "railway_pdf_index_attachment"
+    ],
+    "webSearchProviders": [
+      "railway-searxng"
     ]
   }
 }

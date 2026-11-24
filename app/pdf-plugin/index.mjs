@@ -1,6 +1,7 @@
 import { constants } from 'node:fs'
 import { open } from 'node:fs/promises'
 import { join } from 'node:path'
+import { railwaySearchProvider } from './private-search.mjs'
 import { importDocument, MAX_BYTES, searchDocuments } from './documents.mjs'
 
 function text(value) {
@@ -12,6 +13,7 @@ export default {
   name: 'Railway PDF Library',
   description: 'Search the deployment’s persistent library of explicitly imported PDFs.',
   register(api) {
+    if (process.env.SEARXNG_BASE_URL) api.registerWebSearchProvider(railwaySearchProvider())
     api.registerTool({
       name: 'railway_pdf_search',
       label: 'Search PDF library',

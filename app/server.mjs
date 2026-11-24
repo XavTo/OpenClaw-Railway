@@ -4,13 +4,11 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { createServer, request as httpRequest } from 'node:http'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { startPrivateSearch } from './private-search.mjs'
 import { DocumentError, importDocument, listDocuments, MAX_BYTES, removeDocument, searchDocuments } from './pdf-plugin/documents.mjs'
 
 const run = promisify(execFile)
 const port = Number(process.env.PORT || 8080)
 const gatewayPort = 18789
-const searchPort = 18881
 const state = process.env.OPENCLAW_STATE_DIR || '/data/state'
 const workspace = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace'
 const configFile = process.env.OPENCLAW_CONFIG_PATH || join(state, 'openclaw.json')
@@ -38,8 +36,6 @@ const env = {
   OPENCLAW_DISABLE_BONJOUR: '1',
 }
 delete env.RAILWAY_OWNER_PASSWORD
-const search = startPrivateSearch(process.env.SEARXNG_BASE_URL, searchPort)
-if (search) env.SEARXNG_BASE_URL = 'http://127.0.0.1:' + searchPort
 
 async function configure() {
   let config = {}
@@ -71,7 +67,7 @@ async function configure() {
     }
     config.tools = { profile: 'coding', deny: ['exec', 'process', 'gateway', 'group:nodes'], elevated: { enabled: false } }
     config.tools.alsoAllow = ['browser', 'railway_pdf_search', 'railway_pdf_index_attachment']
-    if (env.SEARXNG_BASE_URL) config.tools.web = { search: { enabled: true, provider: 'searxng' } }
+    if (env.SEARXNG_BASE_URL) config.tools.web = { search: { enabled: true, provider: 'railway-searxng' } }
     const initialModel = env.OPENCLAW_INITIAL_MODEL ||
       (env.OPENAI_API_KEY ? 'openai/gpt-5-mini' : env.ANTHROPIC_API_KEY ? 'anthropic/claude-haiku-4-5' : undefined)
     if (initialModel) config.agents.defaults.model = { primary: initialModel }
@@ -86,6 +82,10 @@ async function configure() {
       'docs.railway.com', 'github.com', 'raw.githubusercontent.com',
       'developer.mozilla.org', 'en.wikipedia.org',
     ]
+  }
+  if (env.SEARXNG_BASE_URL && config.tools?.web?.search?.provider === 'searxng' &&
+      !config.plugins.entries.searxng?.config?.webSearch?.baseUrl) {
+    config.tools.web.search.provider = 'railway-searxng'
   }
   const temporary = configFile + '.railway'
   await writeFile(temporary, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 })
@@ -259,7 +259,6 @@ function stop() {
   if (exiting) return
   exiting = true
   server.close()
-  search?.close()
   gateway.kill('SIGTERM')
   setTimeout(() => process.exit(1), 10_000).unref()
 }
