@@ -4,11 +4,13 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { createServer, request as httpRequest } from 'node:http'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
+import { startPrivateSearch } from './private-search.mjs'
 import { DocumentError, importDocument, listDocuments, MAX_BYTES, removeDocument, searchDocuments } from './pdf-plugin/documents.mjs'
 
 const run = promisify(execFile)
 const port = Number(process.env.PORT || 8080)
 const gatewayPort = 18789
+const searchPort = 18881
 const state = process.env.OPENCLAW_STATE_DIR || '/data/state'
 const workspace = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace'
 const configFile = process.env.OPENCLAW_CONFIG_PATH || join(state, 'openclaw.json')
@@ -36,6 +38,8 @@ const env = {
   OPENCLAW_DISABLE_BONJOUR: '1',
 }
 delete env.RAILWAY_OWNER_PASSWORD
+const search = startPrivateSearch(process.env.SEARXNG_BASE_URL, searchPort)
+if (search) env.SEARXNG_BASE_URL = 'http://127.0.0.1:' + searchPort
 
 async function configure() {
   let config = {}
@@ -255,6 +259,7 @@ function stop() {
   if (exiting) return
   exiting = true
   server.close()
+  search?.close()
   gateway.kill('SIGTERM')
   setTimeout(() => process.exit(1), 10_000).unref()
 }

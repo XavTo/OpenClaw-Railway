@@ -5,9 +5,11 @@ use_default_settings:
       - wikipedia
       - brave
       - startpage
+      - mojeek
 general:
   instance_name: OpenClaw Private Search
   enable_metrics: false
+  contact_url: https://github.com/XavTo/OpenClaw-Railway/issues
 search:
   formats:
     - html
