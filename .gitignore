@@ -1,0 +1,5 @@
+.env*
+!*.example
+.railway/
+node_modules/
+*.sqlite*

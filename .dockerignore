@@ -1,0 +1,5 @@
+.git/
+.railway/
+.env*
+tests/
+node_modules/

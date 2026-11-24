@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenClaw Pro Stack</title>
+<link rel="stylesheet" href="/railway/setup.css">
+<script src="/railway/setup.js" defer></script>
+</head>
+<body>
+<main>
+<h1>OpenClaw Pro Stack</h1>
+<form id="signin">
+<label for="password">Railway owner password</label>
+<div class="row"><input id="password" type="password" autocomplete="current-password" required><button>Sign in</button></div>
+<p>Find <code>RAILWAY_OWNER_PASSWORD</code> in the OpenClaw service variables.</p>
+</form>
+<section id="workspace" hidden>
+<nav class="row"><a class="button" href="/chat">Open chat</a><button id="pair">Pair this browser</button></nav>
+<p>Pair once per browser, then set up your model provider in OpenClaw.</p>
+<h2>PDF library</h2>
+<p>Import up to 12 MB and 40 pages. Scans are recognized locally in English and French. In any OpenClaw chat, ask for information from the PDF library and the source page.</p>
+<form id="upload" class="row">
+<label for="pdf" class="sr-only">Select PDF</label><input id="pdf" type="file" accept="application/pdf,.pdf" required><button>Index PDF</button>
+</form>
+<ul id="documents"></ul>
+<form id="search" class="row">
+<label for="keywords" class="sr-only">Search PDF library</label><input id="keywords" placeholder="Search PDF text" maxlength="240" required><button>Search</button>
+</form>
+<ul id="passages"></ul>
+</section>
+<p id="status" role="status" aria-live="polite"></p>
+</main>
+</body>
+</html>
