@@ -72,6 +72,17 @@ async function configure() {
       (env.OPENAI_API_KEY ? 'openai/gpt-5-mini' : env.ANTHROPIC_API_KEY ? 'anthropic/claude-haiku-4-5' : undefined)
     if (initialModel) config.agents.defaults.model = { primary: initialModel }
   }
+  // On this managed profile Chromium cannot pin a hostname between its
+  // preflight and network request. Keep the upstream strict policy and start
+  // with a short set of explicit, trusted public documentation hosts.
+  if (config.browser?.ssrfPolicy?.dangerouslyAllowPrivateNetwork === false &&
+      !Object.hasOwn(config.browser.ssrfPolicy, 'allowedHostnames')) {
+    config.browser.ssrfPolicy.allowedHostnames = [
+      'example.com', 'openclaw.ai', 'docs.openclaw.ai', 'railway.com',
+      'docs.railway.com', 'github.com', 'raw.githubusercontent.com',
+      'developer.mozilla.org', 'en.wikipedia.org',
+    ]
+  }
   const temporary = configFile + '.railway'
   await writeFile(temporary, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 })
   await rename(temporary, configFile)

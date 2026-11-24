@@ -7,7 +7,7 @@ Deploy the official OpenClaw Control UI with private SearXNG search, headless Ch
 1. Deploy and open the public URL of the **OpenClaw** service.
 2. Sign in with `RAILWAY_OWNER_PASSWORD` from the service variables. Select **Pair this browser**. OpenClaw issues its own single-use pairing link and saves a device credential in your browser. For later visits, use **Open chat** or bookmark the native chat.
 3. Configure your model provider in OpenClaw Settings, or set a provider key in the OpenClaw Railway service and redeploy. A model key is needed for agent responses. The login page, browser pairing and PDF library can start without one.
-4. Open **Browser** from a native conversation and navigate to a public page, or ask the agent to search the web with SearXNG. Search makes real requests to upstream engines and they can rate-limit shared IP addresses.
+4. Open **Browser** from a native conversation and navigate to a trusted public page, or ask the agent to search the web with SearXNG. Search makes real requests to upstream engines and they can rate-limit shared IP addresses.
 
 ## Read documents across chats
 
@@ -23,7 +23,7 @@ Deploy the official OpenClaw Control UI with private SearXNG search, headless Ch
 | OpenClaw | Official version-pinned OpenClaw gateway, native Control UI, Chromium and on-demand PDF OCR. A single `/data` volume holds gateway configuration, pairings, sessions, workspaces and the SQLite PDF index. |
 | SearXNG | Key-free search for OpenClaw over Railway private networking. Railway does not expose a public domain for this service. |
 
-Chromium starts on demand. OCR runs only during imports. Railway charges for real service usage, and your chosen LLM provider bills separately. Containerized Chromium uses the browser image's no-sandbox setting; keep the native app restricted to trusted operators. The template disables agent shell/elevated tools and browser JavaScript evaluation by default.
+Chromium starts on demand. The default browser profile uses an explicit list of trusted public sites (including OpenClaw docs and GitHub). You can add a specific trusted hostname to `browser.ssrfPolicy.allowedHostnames` in OpenClaw Settings. SearXNG can still search the public web. OCR runs only during imports. Railway charges for real service usage, and your chosen LLM provider bills separately. Containerized Chromium uses the browser image's no-sandbox setting; keep the native app restricted to trusted operators. The template disables agent shell/elevated tools and browser JavaScript evaluation by default.
 
 ## Variables
 
