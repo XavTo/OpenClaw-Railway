@@ -18,6 +18,8 @@ Deploy the official OpenClaw Control UI with private SearXNG search, headless Ch
 
 ## Services and cost
 
+Use a Railway plan that allows at least **2 GB RAM for the OpenClaw service**. The gateway alone used about 1.66 GB of resident memory in a verified cold restart, before Chromium or PDF OCR. Free and Trial are below that observed usage. Keep additional headroom if you use Chromium and OCR together, and check Railway deployment events for an out-of-memory exit if startup fails. See the [Railway plan limits](https://docs.railway.com/pricing/plans).
+
 | Service | Purpose |
 | --- | --- |
 | OpenClaw | Official version-pinned OpenClaw gateway, native Control UI, Chromium and on-demand PDF OCR. A single `/data` volume holds gateway configuration, pairings, sessions, workspaces and the SQLite PDF index. |
