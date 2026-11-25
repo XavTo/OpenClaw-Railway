@@ -1,10 +1,11 @@
 import { spawn, execFile } from 'node:child_process'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { createServer, request as httpRequest } from 'node:http'
+import { createServer } from 'node:http'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { DocumentError, importDocument, listDocuments, MAX_BYTES, removeDocument, searchDocuments } from './pdf-plugin/documents.mjs'
+import { forward, proxyHttp, requestUrl } from './http-proxy.mjs'
 
 const run = promisify(execFile)
 const port = Number(process.env.PORT || 8080)
@@ -140,16 +141,6 @@ async function body(req, limit) {
   return Buffer.concat(chunks, size)
 }
 
-function forward(req, callback) {
-  const h = { ...req.headers, host: site.host, 'x-forwarded-proto': site.protocol.slice(0, -1), 'x-forwarded-host': site.host }
-  delete h.forwarded
-  delete h['x-real-ip']
-  delete h['x-forwarded-user']
-  // The peer is the Railway edge, never a client-supplied loopback address.
-  h['x-forwarded-for'] = req.socket.remoteAddress
-  return httpRequest({ host: '127.0.0.1', port: gatewayPort, method: req.method, path: req.url, headers: h }, callback)
-}
-
 async function issueHandoff() {
   if (handoffRunning) throw new DocumentError('Pairing is already being prepared. Try again in a moment.', 409)
   handoffRunning = true
@@ -212,7 +203,12 @@ async function railway(req, res, path) {
 }
 
 const server = createServer({ requestTimeout: 110_000 }, (req, res) => {
-  const path = new URL(req.url, site).pathname
+  const target = requestUrl(req.url, site)
+  if (!target) return send(res, 400, { error: 'Invalid request target.' })
+  const path = target.pathname
+  if (path === '/healthz' && (req.method === 'GET' || req.method === 'HEAD')) {
+    return proxyHttp(req, res, site, gatewayPort, '/startupz')
+  }
   if (path === '/railway') {
     res.writeHead(308, { Location: '/railway/' }).end()
     return
@@ -227,29 +223,29 @@ const server = createServer({ requestTimeout: 110_000 }, (req, res) => {
     res.writeHead(302, { Location: '/railway/' }).end()
     return
   }
-  const proxy = forward(req, upstream => {
-    res.writeHead(upstream.statusCode, upstream.headers)
-    upstream.pipe(res)
-  })
-  proxy.on('error', () => send(res, 503, { error: 'OpenClaw is starting.' }))
-  res.on('close', () => { if (!res.writableEnded) proxy.destroy() })
-  req.pipe(proxy)
+  proxyHttp(req, res, site, gatewayPort)
 })
 server.on('upgrade', (req, socket, head) => {
-  if (req.url.startsWith('/railway/')) return socket.destroy()
+  const target = requestUrl(req.url, site)
+  if (!target || target.pathname.startsWith('/railway/')) return socket.destroy()
   if (req.headers.origin && req.headers.origin !== site.origin) return socket.destroy()
-  const proxy = forward(req, () => socket.destroy())
+  const proxy = forward(req, site, gatewayPort, req.url, (upstream) => {
+    upstream.destroy()
+    socket.destroy()
+  })
   socket.on('error', () => proxy.destroy())
+  socket.once('close', () => proxy.destroy())
   proxy.on('error', () => socket.destroy())
   proxy.on('upgrade', (res, peer, firstBytes) => {
+    if (socket.destroyed) return peer.destroy()
+    peer.on('error', () => socket.destroy())
+    peer.on('close', () => socket.destroy())
+    socket.once('close', () => peer.destroy())
     socket.write('HTTP/1.1 101 Switching Protocols\r\n')
     for (let i = 0; i < res.rawHeaders.length; i += 2) socket.write(res.rawHeaders[i] + ': ' + res.rawHeaders[i + 1] + '\r\n')
     socket.write('\r\n')
     if (firstBytes.length) socket.write(firstBytes)
     if (head.length) peer.write(head)
-    peer.on('error', () => socket.destroy())
-    peer.on('close', () => socket.destroy())
-    socket.on('close', () => peer.destroy())
     peer.pipe(socket).pipe(peer)
   })
   proxy.end()
